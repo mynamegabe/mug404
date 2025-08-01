@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # FastAPI application
+  api:
+    build: ./backend
+    container_name: mug404_fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://mug404:password@db:3306/mug404
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mug404
+      MYSQL_USER: mug404
+      MYSQL_PASSWORD: password
+    ports:
+      - "3333:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "--password=password", "--user=mug404", "status"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  mysql_data:
+    driver: local
