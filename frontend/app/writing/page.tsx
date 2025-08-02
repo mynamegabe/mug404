@@ -117,7 +117,7 @@ export default function Page() {
           <Separator orientation="vertical" />
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
-              <Link href="/snap" className="flex flex-row items-center gap-2">
+              <Link href="/profile" className="flex flex-row items-center gap-2">
                 <User />
                 Profile
               </Link>

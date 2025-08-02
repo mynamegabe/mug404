@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlmodel
+werkzeug
+python-multipart
+requests
+pydantic
+google-genai

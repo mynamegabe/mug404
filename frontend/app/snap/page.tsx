@@ -43,6 +43,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -50,10 +62,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
+import { snapAndSolve } from "@/lib/api";
+import { Progress } from "@/components/ui/progress";
 
 const syncopate = Syncopate({
   variable: "--font-syncopate",
@@ -69,6 +80,35 @@ const geistMono = Geist_Mono({
 export default function Page() {
   const [question, setQuestion] = useState<Record<string, any>>({});
   const [image, setImage] = useState<File | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Array<string>>([]);
+  const [quizCompleted, setQuizCompleted] = useState<Boolean>(false);
+  const [correct, setCorrect] = useState<number>(0);
+
+  useEffect(() => {
+    if (image) {
+      snapAndSolve(image)
+        .then((data) => {
+          console.log("Question data:", data);
+          setQuestion(data);
+          setQuizAnswers(new Array(data.questions.length).fill(1));
+        })
+        .catch((error) => {
+          console.error("Error fetching question data:", error);
+        });
+    }
+  }, [image]);
+
+  async function verifyAnswers() {
+    let correct = 0;
+    question.questions.map((q, index) => {
+      if (q.options[quizAnswers[index]] === q.answer) {
+        correct += 1;
+      }
+    });
+    setCorrect(correct);
+    setQuizCompleted(true);
+    // alert(`${correct} questions answered correctly`);
+  }
 
   return (
     <div
@@ -121,7 +161,10 @@ export default function Page() {
           <Separator orientation="vertical" />
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
-              <Link href="/snap" className="flex flex-row items-center gap-2">
+              <Link
+                href="/profile"
+                className="flex flex-row items-center gap-2"
+              >
                 <User />
                 Profile
               </Link>
@@ -185,20 +228,20 @@ export default function Page() {
                         const file = e.target.files?.[0];
                         if (file) {
                           setImage(file);
-                          setQuestion({
-                            question: "Solve for x: 2x + 5 = 13",
-                            answer: "x = 4",
-                            steps: [
-                              "Subtract 5 from both sides: 2x = 8",
-                              "Divide both sides by 2: x = 4",
-                            ],
-                            quiz: [
-                              {
-                                question: "What is the value of x?",
-                                options: ["3", "4", "5", "6"],
-                              },
-                            ],
-                          });
+                          // setQuestion({
+                          //   question: "Solve for x: 2x + 5 = 13",
+                          //   answer: "x = 4",
+                          //   steps: [
+                          //     "Subtract 5 from both sides: 2x = 8",
+                          //     "Divide both sides by 2: x = 4",
+                          //   ],
+                          //   quiz: [
+                          //     {
+                          //       question: "What is the value of x?",
+                          //       options: ["3", "4", "5", "6"],
+                          //     },
+                          //   ],
+                          // });
                         }
                       }}
                     />
@@ -231,15 +274,11 @@ export default function Page() {
                     <CardContent className="text-xs">
                       <p className="font-semibold">Question:</p>
                       <br />
-                      {question.question
-                        ? question.question
-                        : "Solve for x: 2x + 5 = 13"}
+                      {question.question ? question.question : "Loading..."}
                     </CardContent>
                   </Card>
                   <p className="text-sm text-muted-foreground w-full">
-                    {question.answer
-                      ? question.answer
-                      : "This is a linear equation that can be solved by isolating the variable x. We need to perform inverse operations to both sides of the equation."}
+                    {question.answer ? question.answer : "Loading answer..."}
                   </p>
                 </CardContent>
               </Card>
@@ -271,7 +310,7 @@ export default function Page() {
               </Card>
               <Card className="bg-gradient-to-r from-[#f40752]/[0.15] to-[#f9ab8f]/[0.15] text-white">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold text-violet-950">
+                  <CardTitle className="flex items-center gap-4 text-lg font-semibold text-violet-950">
                     <Trophy className="text-violet-800" />
                     Test Your Understanding
                   </CardTitle>
@@ -281,7 +320,7 @@ export default function Page() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  {question.quiz ? (
+                  {question.questions ? (
                     // question.quiz.map((quiz, index) => (
                     //   <div key={index} className="flex flex-col gap-2">
                     //     <p className="text-sm font-semibold">{quiz.question}</p>
@@ -296,13 +335,59 @@ export default function Page() {
                     //     ))}
                     //   </div>
                     // ))
-                    <Button
-                      className="bg-gradient-to-r from-[#f40752] to-[#f9ab8f] text-white w-fit"
-                      onClick={() => alert("Quiz functionality coming soon!")}
-                    >
-                      <Play />
-                      Start Quiz
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-gradient-to-r from-[#f40752] to-[#f9ab8f] text-white w-fit">
+                          <Play />
+                          Start Quiz
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Pop Quiz</DialogTitle>
+                          <DialogDescription>
+                            Test your understanding of the relevant concepts
+                            with these questions
+                          </DialogDescription>
+                        </DialogHeader>
+                        {!quizCompleted ? (
+                          <div className="flex flex-col gap-4">
+                            {question.questions.map((q, index) => (
+                              <div className="flex flex-col gap-2">
+                                <p>
+                                  {index + 1}. {q.question}
+                                </p>
+                                <Select
+                                  onValueChange={(value) => {
+                                    const newAnswers = [...quizAnswers];
+                                    newAnswers[index] = value;
+                                    setQuizAnswers(newAnswers);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {q.options.map((option, index) => (
+                                      <SelectItem value={index}>
+                                        {option}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ))}
+                            {/* <p>{JSON.stringify(quizAnswers)}</p> */}
+                            <Button onClick={verifyAnswers}>Submit</Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-4">
+                            You got {correct} / {question.questions.length} questions correct!
+                            <Progress value={correct / question.questions.length * 100} />
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       No quiz questions available.
